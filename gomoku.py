@@ -8,6 +8,7 @@ import datetime
 PLAY_WITH_RANDOM = "training data/random/"
 PLAY_WITH_MYSELF = "training data/myself/"
 
+
 def check_winner(L):
     N = len(L)
     if N < 5:
@@ -54,7 +55,7 @@ class Gomoku:
         self.number = np.zeros((board_sz, board_sz), dtype=int)
         self.k = 1  # step number
         self.result = 0
-        self.states = np.zeros((board_sz*board_sz, board_sz, board_sz))
+        self.states = np.zeros((board_sz * board_sz, board_sz, board_sz))
         self.state_counter = 0
         print("----initializing zeros states: ", self.states.shape, "--------")
         if gui:
@@ -114,9 +115,10 @@ class Gomoku:
             if win:
                 self.result = 1 - 2 * pi
                 now = datetime.datetime.now()
-                filename = PLAY_WITH_RANDOM + "board_" + now.strftime("%m_%d_%Y_%H_%M_%S") + ".npy"
-                print("-----won-----", pi, "\n----saving to file ", filename)
-                np.save(filename, self.states)
+                filename = PLAY_WITH_MYSELF + "board_" + now.strftime("%m_%d_%Y_%H_%M_%S") + ".npy"
+                print("-----won-----", pi, "\n----state counter: ", self.state_counter,
+                      "\n----saving to file ", filename)
+                np.save(filename, self.states[:self.state_counter])
                 break
             if np.sum(self.board.pbs) == self.board_sz * self.board_sz:
                 break
@@ -135,23 +137,25 @@ class RandomPlayer:
         return idx[np.random.choice(len(idx))]
 
 
-if __name__ == "__main__":
+def load_sample_game_data(_folder=PLAY_WITH_RANDOM):
     _dir = os.getcwd()
-    files = os.listdir(os.path.join(_dir, PLAY_WITH_RANDOM))
+    files = os.listdir(os.path.join(_dir, _folder))
     print("training data files: ", files)
-    test_file = os.path.join(_dir, PLAY_WITH_RANDOM, files[0])
+    test_file = os.path.join(_dir, _folder, files[0])
     print("load training data sample from file: ", test_file)
     board_states = np.load(test_file)
     print(board_states[0], board_states.shape)
-    # g = Gomoku(11, True)
-    #
-    # p1 = RandomPlayer(0)
-    # p2 = GUIPlayer(1, g.gui)
-    # print('start GUI game, close window to exit.')
-    # g.play(p1, p2)
-    #
-    # g.gui.draw_result(g.result)
-    # g.gui.wait_to_exit()
+
+
+if __name__ == "__main__":
+    g = Gomoku(11, True)
+    p1 = GUIPlayer(0, g.gui)  # RandomPlayer(0)
+    p2 = GUIPlayer(1, g.gui)
+    print('start GUI game, close window to exit.')
+    g.play(p1, p2)
+
+    g.gui.draw_result(g.result)
+    g.gui.wait_to_exit()
 
     # import sys
     # if len(sys.argv) > 1:
