@@ -5,6 +5,7 @@ import numpy as np
 from gamegui import GameGUI, GUIPlayer  # do not import gamegui if you don't have pygame or not on local machine.
 import datetime
 
+BOARD_SIZE = 11
 PLAY_WITH_RANDOM = "training data/random/"
 PLAY_WITH_MYSELF = "training data/myself/"
 
@@ -141,10 +142,49 @@ def load_sample_game_data(_folder=PLAY_WITH_RANDOM):
     _dir = os.getcwd()
     files = os.listdir(os.path.join(_dir, _folder))
     print("training data files: ", files)
+    # print sample test file
     test_file = os.path.join(_dir, _folder, files[0])
     print("load training data sample from file: ", test_file)
     board_states = np.load(test_file)
     print(board_states[0], board_states.shape)
+    return [os.path.join(_dir, _folder, filename) for filename in files]
+
+
+def separate_train_x_y(_data, _dir):
+    index = 1
+    train_x = []
+    train_y = []
+    offset_inc = 1 if _dir == PLAY_WITH_MYSELF else 2
+
+    # when both players are me, then consider the moves and
+    # current state for both player
+
+    # when played with random player, only consider your moves
+    # index 0: initial zeros all board values
+    # index 1: board state after the first player (random) make the move
+    # index 2: board state after the second player (me) make the move
+
+    while len(_data) >= 3 and index < (len(_data) - 1):
+        train_x.append(_data[index])
+        train_y.append(_data[index + offset_inc])
+        index += offset_inc
+
+    return np.array(train_x), np.array(train_y)
+
+
+def load_data(_folder=PLAY_WITH_MYSELF):
+    files = load_sample_game_data(_folder)
+    # batch size, BOARD_SIZE, BOARD_SIZE
+    training_current_states = np.empty((0, BOARD_SIZE, BOARD_SIZE))
+    training_next_states = np.empty((0, BOARD_SIZE, BOARD_SIZE))
+    for file in files:
+        data = np.load(file)  # (sum_play_count, BOARD_SIZE, BOARD_SIZE)
+        train_x, train_y = separate_train_x_y(data, _folder)
+        training_current_states = np.append(training_current_states, train_x, axis=0)
+        training_next_states = np.append(training_next_states, train_y, axis=0)
+    print("training current states: ", training_current_states.shape)
+    print("training next states: ", training_next_states.shape)
+    return training_current_states, training_next_states
 
 
 if __name__ == "__main__":
