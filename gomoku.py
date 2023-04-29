@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
-import os
+import os, sys
+import time
 
 import numpy as np
+import pygame.display
+
+from StrategyPlayer import StrategyPlayer
 from gamegui import GameGUI, GUIPlayer  # do not import gamegui if you don't have pygame or not on local machine.
 import datetime
 
 BOARD_SIZE = 11
 PLAY_WITH_RANDOM = "training data/random/"
 PLAY_WITH_MYSELF = "training data/myself/"
+PLAY_WITH_STRATEGY = "training data/strategy/"
 
 
 def check_winner(L):
@@ -102,13 +107,15 @@ class Gomoku:
         return win
 
     # main loop
-    def play(self, p1, p2):
+    def play(self, p1, p2, output_dir=PLAY_WITH_MYSELF, sleep=1):
         players = {0: p1, 1: p2}
         pi = 0
         self.draw()
         while True:
-            x, y = players[pi].get_move(self.board.pbs)
+            player_value = 1 if pi == 0 else -1
+            x, y = players[pi].get_move(self.board.pbs, player_value)
             if x < 0:
+                print("player ", players[pi], " returning invalid position: ", x, y)
                 break
             win = self.execute_move(pi, x, y)
             self.draw()
@@ -116,7 +123,7 @@ class Gomoku:
             if win:
                 self.result = 1 - 2 * pi
                 now = datetime.datetime.now()
-                filename = PLAY_WITH_MYSELF + "board_" + now.strftime("%m_%d_%Y_%H_%M_%S") + ".npy"
+                filename = output_dir + "board_" + now.strftime("%m_%d_%Y_%H_%M_%S") + ".npy"
                 print("-----won-----", pi, "\n----state counter: ", self.state_counter,
                       "\n----saving to file ", filename)
                 np.save(filename, self.states[:self.state_counter])
@@ -125,13 +132,15 @@ class Gomoku:
                 break
 
             pi = (pi + 1) % 2
+            time.sleep(sleep)
 
 
 class RandomPlayer:
     def __init__(self, id):
         self.id = id
 
-    def get_move(self, board):
+    def get_move(self, board, player):
+        print("get move random player: ", player)
         b = (board[0, :, :] + board[1, :, :]) - 1
         ix, jx = np.nonzero(b)
         idx = [i for i in zip(ix, jx)]
@@ -187,35 +196,44 @@ def load_data(_folder=PLAY_WITH_MYSELF):
     return training_current_states, training_next_states
 
 
+def play_both_gui():
+    max_games = 100
+    while max_games > 0:
+        g = Gomoku(11, True)
+        p1 = StrategyPlayer(0, g.gui)  # RandomPlayer(0)
+        p2 = StrategyPlayer(1, g.gui)
+        print('start GUI game, close window to exit.')
+        g.play(p1, p2, PLAY_WITH_STRATEGY, 0)
+
+        g.gui.draw_result(g.result)
+        max_games -= 1
+        g.gui.wait_to_exit(force_quit=True)
+
+
+def play_cmd():
+    if len(sys.argv) > 1:
+        # A user plays game with a random player
+        g = Gomoku(11, True)
+
+        p1 = RandomPlayer(0)
+        p2 = GUIPlayer(1, g.gui)
+        print('start GUI game, close window to exit.')
+        g.play(p1, p2)
+
+        g.gui.draw_result(g.result)
+        g.gui.wait_to_exit()
+
+    else:
+        # Two random player play 100 rounds of non-GUI game
+        g = Gomoku()
+        p1 = RandomPlayer(0)
+        p2 = RandomPlayer(1)
+        for i in range(100):
+            g.play(p1, p2)
+            print(i, g.result)
+            g.reset()
+
+
 if __name__ == "__main__":
-    g = Gomoku(11, True)
-    p1 = GUIPlayer(0, g.gui)  # RandomPlayer(0)
-    p2 = GUIPlayer(1, g.gui)
-    print('start GUI game, close window to exit.')
-    g.play(p1, p2)
-
-    g.gui.draw_result(g.result)
-    g.gui.wait_to_exit()
-
-    # import sys
-    # if len(sys.argv) > 1:
-    # # A user plays game with a random player
-    #     g = Gomoku(11, True)
-    #
-    #     p1 = RandomPlayer(0)
-    #     p2 = GUIPlayer(1, g.gui)
-    #     print('start GUI game, close window to exit.')
-    #     g.play(p1, p2)
-    #
-    #     g.gui.draw_result(g.result)
-    #     g.gui.wait_to_exit()
-    #
-    # else:
-    # # Two random player play 100 rounds of non-GUI game
-    #     g = Gomoku()
-    #     p1 = RandomPlayer(0)
-    #     p2 = RandomPlayer(1)
-    #     for i in range(100):
-    #         g.play(p1, p2)
-    #         print(i, g.result)
-    #         g.reset()
+    play_both_gui()
+    # play_cmd()

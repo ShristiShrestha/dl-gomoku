@@ -30,12 +30,19 @@ class GameGUI:
         self.font = pygame.font.SysFont('Arial', self.font_size)
         self.font2 = pygame.font.SysFont('Arial', 50)
 
-    def wait_to_exit(self):
+    def wait_to_exit(self, force_quit = False):
+        if force_quit:
+            self.exit_game()
+            return
+
         while True:
             self.clock.tick(1)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     return
+
+    def exit_game(self):
+        pygame.quit()
 
     def _draw_background(self):
         # load background
@@ -103,7 +110,8 @@ class GUIPlayer:
         self.id = _id
         self.gui = gui
 
-    def get_move(self, board):
+    def get_move(self, board, player_value):
+        print("get move gui player: ", player_value)
         while True:
             self.gui.clock.tick(1)
             for event in pygame.event.get():
