@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
-import os, sys
-import random
+import datetime
+import os
+import sys
 import time
 
 import numpy as np
-import pygame.display
 
 from StrategyPlayer import StrategyPlayer
 from gamegui import GameGUI, GUIPlayer  # do not import gamegui if you don't have pygame or not on local machine.
-import datetime
 
 BOARD_SIZE = 11
-PLAY_WITH_RANDOM = "training data/random/"
-PLAY_WITH_MYSELF = "training data/myself/"
-PLAY_WITH_STRATEGY = "training data/strategy/"
+PLAY_WITH_RANDOM = "training data/channels/random/"
+PLAY_WITH_MYSELF = "training data/channels/myself/"
+PLAY_WITH_STRATEGY = "training data/channels/strategy/"
 
 
 def check_winner(L):
@@ -63,7 +62,7 @@ class Gomoku:
         self.number = np.zeros((board_sz, board_sz), dtype=int)
         self.k = 1  # step number
         self.result = 0
-        self.states = np.zeros((board_sz * board_sz, board_sz, board_sz))
+        self.states = np.zeros((board_sz * board_sz, 2, board_sz, board_sz))
         self.state_counter = 0
         print("----initializing zeros states: ", self.states.shape, "--------")
         if gui:
@@ -91,10 +90,11 @@ class Gomoku:
         # -1 is player 2, (black)
         # 1 is player 1 (white)
         # 0 is empty place
-        current_board = self.board.pbs[0, :, :] - self.board.pbs[1, :, :]
-        self.states[self.state_counter] = current_board
-        self.state_counter += 1
-        print("Adding current board at ", self.state_counter - 1, "\n", current_board)
+        if self.state_counter < (self.board_sz * self.board_sz):
+            # current_board = self.board.pbs[0, :, :] - self.board.pbs[1, :, :]
+            self.states[self.state_counter] = np.array([self.board.pbs[0, :, :], self.board.pbs[1, :, :]])
+            self.state_counter += 1
+            print("Adding current board at ", self.state_counter - 1, "\n", self.states[self.state_counter-1])
         if self.gui:
             self.gui._draw_background()
             self.gui._draw_chessman(self.board.pbs[0, :, :] - self.board.pbs[1, :, :], self.number)
@@ -102,8 +102,9 @@ class Gomoku:
     # execute a move
     def execute_move(self, p, x, y):
         nobody_made_move = np.sum(self.board.pbs[:, x, y]) == 0
-
-        print("blunder is picking x y:\n p: ", self.board.pbs[p, x, y], "\nall board value at xy", self.board.pbs[:, x, y], "\nnobody made moves: ", nobody_made_move)
+        if nobody_made_move is False:
+            print("blunder is picking x y:\n p: ", self.board.pbs[p, x, y], "\nall board value at xy",
+                  self.board.pbs[:, x, y], "\nnobody made moves: ", nobody_made_move)
         assert nobody_made_move
 
         win = self.board.add_move(p, x, y)
@@ -204,15 +205,15 @@ def load_data(_folder=PLAY_WITH_MYSELF):
 
 
 def play_both_gui():
-    max_games = 1
+    max_games = 1000
     while max_games > 0:
         g = Gomoku(11, True)
-        p1 = StrategyPlayer(0, g.gui, g.board.pbs) # GUIPlayer(0, g.gui)
+        p1 = StrategyPlayer(0, g.gui, g.board.pbs)  # GUIPlayer(0, g.gui)
         p2 = StrategyPlayer(1, g.gui, g.board.pbs)
-        g.play(p1, p2, PLAY_WITH_STRATEGY, 3)
+        g.play(p1, p2, PLAY_WITH_STRATEGY, 0)
         g.gui.draw_result(g.result)
         max_games -= 1
-        g.gui.wait_to_exit(force_quit=False)
+        g.gui.wait_to_exit(force_quit=True)
 
 
 def play_cmd():
