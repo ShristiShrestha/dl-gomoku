@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os, sys
+import random
 import time
 
 import numpy as np
@@ -34,6 +35,7 @@ def check_winner(L):
 class Board:
     def __init__(self, sz):
         self.sz = sz
+        # per player board state: 3D (2, board size, board size)
         self.pbs = np.zeros((2, sz, sz), dtype=int)
 
     def add_move(self, p, x, y):
@@ -99,7 +101,10 @@ class Gomoku:
 
     # execute a move
     def execute_move(self, p, x, y):
-        assert np.sum(self.board.pbs[:, x, y]) == 0
+        nobody_made_move = np.sum(self.board.pbs[:, x, y]) == 0
+
+        print("blunder is picking x y:\n p: ", self.board.pbs[p, x, y], "\nall board value at xy", self.board.pbs[:, x, y], "\nnobody made moves: ", nobody_made_move)
+        assert nobody_made_move
 
         win = self.board.add_move(p, x, y)
         self.number[x][y] = self.k
@@ -115,15 +120,17 @@ class Gomoku:
             player_value = 1 if pi == 0 else -1
             x, y = players[pi].get_move(self.board.pbs, player_value)
             if x < 0:
-                print("player ", players[pi], " returning invalid position: ", x, y)
+                print("player ", pi, player_value, " returning invalid position: ", x, y)
                 break
             win = self.execute_move(pi, x, y)
             self.draw()
+            time.sleep(sleep)
 
             if win:
                 self.result = 1 - 2 * pi
                 now = datetime.datetime.now()
-                filename = output_dir + "board_" + now.strftime("%m_%d_%Y_%H_%M_%S") + ".npy"
+                rand = np.random.choice(100000)
+                filename = output_dir + "board_" + str(rand) + now.strftime("%m_%d_%Y_%H_%M_%S") + ".npy"
                 print("-----won-----", pi, "\n----state counter: ", self.state_counter,
                       "\n----saving to file ", filename)
                 np.save(filename, self.states[:self.state_counter])
@@ -197,17 +204,15 @@ def load_data(_folder=PLAY_WITH_MYSELF):
 
 
 def play_both_gui():
-    max_games = 100
+    max_games = 1
     while max_games > 0:
         g = Gomoku(11, True)
-        p1 = StrategyPlayer(0, g.gui)  # RandomPlayer(0)
-        p2 = StrategyPlayer(1, g.gui)
-        print('start GUI game, close window to exit.')
-        g.play(p1, p2, PLAY_WITH_STRATEGY, 0)
-
+        p1 = StrategyPlayer(0, g.gui, g.board.pbs) # GUIPlayer(0, g.gui)
+        p2 = StrategyPlayer(1, g.gui, g.board.pbs)
+        g.play(p1, p2, PLAY_WITH_STRATEGY, 3)
         g.gui.draw_result(g.result)
         max_games -= 1
-        g.gui.wait_to_exit(force_quit=True)
+        g.gui.wait_to_exit(force_quit=False)
 
 
 def play_cmd():
@@ -228,7 +233,7 @@ def play_cmd():
         g = Gomoku()
         p1 = RandomPlayer(0)
         p2 = RandomPlayer(1)
-        for i in range(100):
+        for i in range(1000):
             g.play(p1, p2)
             print(i, g.result)
             g.reset()

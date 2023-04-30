@@ -93,7 +93,7 @@ class GameGUI:
         pygame.display.flip()
 
     def draw_result(self, result):
-        position = (300, 100)
+        position = (300, 50)
         if result == 1:
             s = 'Player 1 Win !'
         elif result == -1:
