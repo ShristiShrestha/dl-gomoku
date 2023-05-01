@@ -2,7 +2,7 @@ import random
 
 import numpy as np
 
-CHECK_FOR_THREATS = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1)]
+CHECK_FOR_THREATS = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
 
 
 class StrategyPlayer:
@@ -33,43 +33,25 @@ class StrategyPlayer:
                     board[i][j] = 0
 
         #  Check if the opponent is threatening to win
-        max_threats = self.detect_opponent_threat_from_opponent(board, player)
+        max_threats = self.detect_threat_from_opponent(board, player)
         opponent_threat_levels = max_threats.keys()
         if len(opponent_threat_levels) > 0:
             max_threat_level = max(opponent_threat_levels)
-            max_threat_level_pos = max_threats[max_threat_level][0]
-            print("opponent threat levels: ", max_threats, max_threat_level_pos)
-
-            return max_threat_level_pos  # tuple (x, y) empty position if filled by opponent (opponent wins)
+            max_threat_level_pos = max_threats[max_threat_level][-1]
+            if max_threat_level > 2:
+                print("opponent threat levels: ", max_threats, max_threat_level_pos)
+                return max_threat_level_pos
 
         # no threats by the opponent, we attack now
-        # Check for double threats to the opponent
-        for i in range(self.board_length):
-            for j in range(self.board_width):
-                # if the place is empty
-                # place the piece and check
-                # whether this move imposes any threat
-                # to the opponent
-                if board[i][j] == 0:
-                    board[i][j] = player
-                    if self.impose_double_threat_to_opponent(board, player):
-                        return i, j
-                    else:
-                        board[i][j] = 0
-
-        # Check for single threats to the opponent
-        for i in range(self.board_length):
-            for j in range(self.board_width):
-                # if the place is empty
-                # place the piece and check
-                # whether this move imposes any threat
-                # to the opponent
-                if board[i][j] == 0:
-                    board[i][j] = player
-                    if self.impose_single_threat_to_opponent(board, player):
-                        return i, j
-                    else:
-                        board[i][j] = 0
+        # find the places where the player has placed
+        # max sequential pieces and continue building on sequence
+        imposed_threats = self.detect_threat_to_opponent(board, player)
+        imposed_threat_levels = imposed_threats.keys()
+        if len(imposed_threat_levels) > 0:
+            max_imposed_threat_level = max(imposed_threat_levels)
+            max_imposed_threat_pos = imposed_threats[max_imposed_threat_level][-1]
+            print("imposed threat to opponent: ", imposed_threats, max_imposed_threat_pos)
+            return max_imposed_threat_pos
 
         # No threats found, so choose a random move
         max_count = 121
@@ -81,33 +63,12 @@ class StrategyPlayer:
             max_count -= 1
         return -1, -1  # when nth is left
 
-    def impose_single_threat_to_opponent(self, board, player):
-        for i in range(self.board_length):
-            for j in range(self.board_width):
-                if board[i][j] == player:
-                    for di, dj in CHECK_FOR_THREATS:
-                        if self.detect_threat_to_opponent(board, i, j, di, dj, player):
-                            print("imposes single threat: ", i, j, di, dj, player)
-                            return True
-        return False
-
-    def impose_double_threat_to_opponent(self, board, player):
-        for i in range(self.board_length):
-            for j in range(self.board_width):
-                if board[i][j] == player:
-                    for di1, dj1 in CHECK_FOR_THREATS:
-                        for di2, dj2 in CHECK_FOR_THREATS:
-                            if (di1, dj1) != (di2, dj2) and self.detect_threat_to_opponent(board, i, j, di1, dj1,
-                                                                                           player) \
-                                    and self.detect_threat_to_opponent(board, i, j, di2, dj2, player):
-                                print("imposes double threat: ", i, j, di1, dj1, player)
-                                return True
-        return False
-
-    # checked: threats imposed by the opponent
-    def detect_opponent_threat_from_opponent(self, board, player):
+    # threats imposed by the opponent
+    # check for every position in the board
+    # for every position: check every direction
+    def detect_threat_from_opponent(self, board, player):
         opponent = -player
-        max_threat_positions = {}
+        threat_positions = {}
 
         for i in range(self.board_length):
             for j in range(self.board_width):
@@ -115,50 +76,24 @@ class StrategyPlayer:
                 # check if that position's neighbor places are threatened
                 # opponent is 1 move away from winning when placed opposite piece
                 # at the neighbour places
-                if board[i][j] == player:
-                    for di, dj in CHECK_FOR_THREATS:
-                        # here di, dj represents direction from reference point i,j
-                        # detect consecutive opponent in the neighbour positions from i,j
-                        # x_pos, y_pos indicates
-                        opponent_is_threat, x_pos, y_pos, threat_level = self.is_opponent_threat(board, i, j, di, dj,
-                                                                                                 opponent)
-                        if opponent_is_threat and x_pos is not None and y_pos is not None:
-                            if threat_level in max_threat_positions:
-                                max_threat_positions[threat_level].append((x_pos, y_pos))
-                            else:
-                                max_threat_positions[threat_level] = [(x_pos, y_pos)]
+                for di, dj in CHECK_FOR_THREATS:
+                    # here di, dj represents direction from reference point i,j
+                    # detect consecutive opponent in the neighbour positions from i,j
+                    # x_pos, y_pos indicates
+                    opponent_is_threat, x_pos, y_pos, threat_level = self.is_a_threat(board, i, j, di, dj, opponent)
+                    if opponent_is_threat and x_pos is not None and y_pos is not None:
+                        if threat_level in threat_positions and (x_pos, y_pos) not in threat_positions[threat_level]:
+                            threat_positions[threat_level].append((x_pos, y_pos))
+                        else:
+                            threat_positions[threat_level] = [(x_pos, y_pos)]
 
-        return max_threat_positions
-
-    # imposing threat on the opponent
-    def detect_threat_to_opponent(self, board, i, j, di, dj, player):
-        n = self.board_length
-        count = 0
-        for k in range(1, 4):
-            x = i + k * di
-            y = j + k * dj
-            # If we encounter an opponent stone or go out of bounds, stop checking
-            if x < 0 or x >= n or y < 0 or y >= n or board[x][y] == -player:
-                return False
-            elif board[x][y] == player:
-                count += 1
-            elif board[x][y] == 0:
-                offset_clear = (self.board_length > (x - di) >= 0) and (self.board_length > (x + di) >= 0) and (
-                        self.board_length > (y - dj) >= 0) and (self.board_length > (y + dj) >= 0)
-
-                # If we encounter an empty space, check if there are no more than two empty spaces in a row
-                if offset_clear and 0 == board[x + di][y + dj] == board[x - di][y - dj]:
-                    return False
-            else:
-                # This should not happen, but just in case...
-                raise ValueError("Invalid board value: {}".format(board[x][y]))
-        return count == 3
+        return threat_positions
 
     # Check if the opponent has a threat in the given direction.
     # i, j -- player's current piece
     # di, dj - neighbour places of player's current piece (direction from i,j)
     # opponent - value in the board for opponent's piece
-    def is_opponent_threat(self, board, i, j, di, dj, opponent):
+    def is_a_threat(self, board, i, j, di, dj, player, max_k=5):
         n = self.board_length
         m = self.board_width
 
@@ -168,7 +103,7 @@ class StrategyPlayer:
         opponent_pieces = []  # stores indices where opponent pieces are placed consecutively
         last_opponent_pos = ()
         last_detected_opponent_k = None
-        for k in range(1, 5):
+        for k in range(1, max_k):
             x = i + k * di
             y = j + k * dj
             # if invalid positions and no opponent pieces in the neighbour positions
@@ -177,23 +112,23 @@ class StrategyPlayer:
             # if opponent exists at the neighboring position of the current player's piece (i,j)
             # di, dj is extended to 4 places
             # for example: di, dj = (0,5) then x is 0 and y ranges from (6,7,8,9)
-            k_last_opponent_pos = last_opponent_pos and opponent_pieces and (
+            k_last_opponent_pos = len(last_opponent_pos) > 0 and len(opponent_pieces) > 0 and (
                     last_opponent_pos[0] == opponent_pieces[-1][0]) and (
                                           last_opponent_pos[1] == opponent_pieces[-1][1])
-            if self.is_valid(x, y) and board[x][y] == opponent and (
+            if self.is_valid(x, y) and board[x][y] == player and (
                     len(last_opponent_pos) == 0 or len(opponent_pieces) == 0 or k_last_opponent_pos):
                 opponent_pieces.append((x, y))
                 last_opponent_pos = (x, y)
                 last_detected_opponent_k = k
 
         # check if the opponent can win by placing a piece at the end of the threat
-        x = i + 5 * di
-        y = j + 5 * dj
+        x = i + max_k * di
+        y = j + max_k * dj
         if 0 <= x < n and m > y >= 0 == board[x][y]:
-            board[x][y] = opponent
-            if self.is_win(board, x, y, opponent):
+            board[x][y] = player
+            if self.is_win(board, x, y, player):
                 board[x][y] = 0
-                return True, x, y, 5  # max level
+                return True, x, y, 5
             board[x][y] = 0
 
         # if no max level threat by the opponent,
@@ -202,11 +137,40 @@ class StrategyPlayer:
         # level (1,2,3,4) -> consecutive opponent pieces
         # in given the direction from i,j
         if opponent_pieces and last_detected_opponent_k is not None:
-            x = i + (last_detected_opponent_k + 1) * di
-            y = j + (last_detected_opponent_k + 1) * dj
+            x = i + ((last_detected_opponent_k + 1) * di)
+            y = j + ((last_detected_opponent_k + 1) * dj)
             if self.is_valid(x, y) and board[x][y] == 0:
+                print("reference: ", i, j)
+                print("longest player sequence: player: ", player, "\nplaced_pieces: ", opponent_pieces)
                 return True, x, y, len(opponent_pieces)
         return False, None, None, None
+
+    # imposing threat to the opponent
+    # check for every position where the player has placed the piece
+    # for every placed piece position: check every direction
+    def detect_threat_to_opponent(self, board, player):
+        imposed_threat_positions = {}
+
+        for i in range(self.board_length):
+            for j in range(self.board_width):
+                # if the player has piece at i,j position
+                # check if that position's neighbor places threaten the opponent
+                # i.e. if the player is crowded around this position
+                # find the neighbour where the max sequence is made
+                if board[i][j] == player:
+                    for di, dj in CHECK_FOR_THREATS:
+                        # here di, dj represents direction from reference point i,j
+                        # detect consecutive player's piece in the neighbour positions from i,j
+                        # x_pos, y_pos indicates the next safe position for the player
+                        # that maximizes the player's chances of winning
+                        is_imposed_threat, x_pos, y_pos, imposed_threat_level = self.is_a_threat(board, i, j, di, dj,
+                                                                                                 player)
+                        if is_imposed_threat and x_pos is not None and y_pos is not None:
+                            if imposed_threat_level in imposed_threat_positions:
+                                imposed_threat_positions[imposed_threat_level].append((x_pos, y_pos))
+                            else:
+                                imposed_threat_positions[imposed_threat_level] = [(x_pos, y_pos)]
+        return imposed_threat_positions
 
     def is_win(self, board, i, j, player):
         count = 0

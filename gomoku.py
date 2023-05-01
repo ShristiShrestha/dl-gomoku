@@ -1,11 +1,11 @@
 import datetime
-import os
 import sys
 import time
 
 import numpy as np
 
-from GlobalVars import PLAY_WITH_MYSELF, PLAY_WITH_RANDOM, PLAY_WITH_STRATEGY
+from GlobalVars import PLAY_WITH_STRATEGY
+from ModelPlayer import ModelPlayer
 from StrategyPlayer import StrategyPlayer
 from gamegui import GameGUI, GUIPlayer  # do not import gamegui if you don't have pygame or not on local machine.
 
@@ -108,10 +108,11 @@ class Gomoku:
         return win
 
     # main loop
-    def play(self, p1, p2, output_dir=PLAY_WITH_MYSELF, sleep=1):
+    def play(self, p1, p2, output_dir, sleep=1):
         players = {0: p1, 1: p2}
         pi = 0
         self.draw()
+        time.sleep(sleep)
         while True:
             player_value = 1 if pi == 0 else -1
             x, y = players[pi].get_move(self.board.pbs, player_value)
@@ -120,7 +121,6 @@ class Gomoku:
                 break
             win = self.execute_move(pi, x, y)
             self.draw()
-            time.sleep(sleep)
 
             if win:
                 self.result = 1 - 2 * pi
@@ -150,18 +150,19 @@ class RandomPlayer:
         return idx[np.random.choice(len(idx))]
 
 
-
-
 def play_both_gui():
-    max_games = 5000
+    max_games = 2
+    sleep = 2
     while max_games > 0:
         g = Gomoku(11, True)
-        p1 = StrategyPlayer(0, g.gui, g.board.pbs)  # GUIPlayer(0, g.gui)
-        p2 = StrategyPlayer(1, g.gui, g.board.pbs)
-        g.play(p1, p2, PLAY_WITH_STRATEGY, 0)
+        p1 = StrategyPlayer(0, g.gui, g.board.pbs)  # StrategyPlayer(0, g.gui, g.board.pbs)  # GUIPlayer(0, g.gui)
+        # p2 = RandomPlayer(1)
+        p2 = ModelPlayer("models/dipesh_model.h5", 1, g.gui)
+        g.play(p1, p2, PLAY_WITH_STRATEGY, sleep)
         g.gui.draw_result(g.result)
         max_games -= 1
-        g.gui.wait_to_exit(force_quit=True)
+        g.gui.wait_to_exit(force_quit=False)
+        # sleep = 1
 
 
 def play_cmd():
