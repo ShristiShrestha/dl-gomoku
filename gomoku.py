@@ -151,19 +151,19 @@ class RandomPlayer:
 
 
 def play_both_gui():
-    max_games = 2
-    sleep = 2
+    max_games = 500
+    sleep = 0
     while max_games > 0:
-        g = Gomoku(11, True)
-        p1 = StrategyPlayer(0, g.gui, g.board.pbs)  # StrategyPlayer(0, g.gui, g.board.pbs)  # GUIPlayer(0, g.gui)
-        # p2 = RandomPlayer(1)
+        g = Gomoku(11, False)
+        p1 = StrategyPlayer(0, g.gui, g.board.pbs)  # GUIPlayer(0, g.gui)
+        # p2 = StrategyPlayer(1, g.gui, g.board.pbs)
+        # p1 = RandomPlayer(0)
         p2 = ModelPlayer("models/dipesh_model.h5", 1, g.gui)
+        # p2 = ModelPlayer("models/cnn_05_01_2023_22_40_30.h5", 1, g.gui)
         g.play(p1, p2, PLAY_WITH_STRATEGY, sleep)
-        g.gui.draw_result(g.result)
+        # g.gui.draw_result(g.result)
         max_games -= 1
-        g.gui.wait_to_exit(force_quit=False)
-        # sleep = 1
-
+        # g.gui.wait_to_exit(force_quit=True)
 
 def play_cmd():
     if len(sys.argv) > 1:
