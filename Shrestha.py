@@ -12,7 +12,7 @@ class MyPlayer:
         self.train_Y_moves = None
         self.cnn_model = None  # create model (untrained)
         # load trained model from remote location
-        self.trained_model_path = "https://lsumail2-my.sharepoint.com/:u:/g/personal/sshre35_lsu_edu/EX5Dq0UPv-VNvzGFfqxbwmQBXgXQfjQ1YqnvHCpthtnMDQ?download=1"
+        self.trained_model_path = None # "https://lsumail2-my.sharepoint.com/:u:/g/personal/sshre35_lsu_edu/EX5Dq0UPv-VNvzGFfqxbwmQBXgXQfjQ1YqnvHCpthtnMDQ?download=1"
         self.model_path = _model_path  # load trained model from local dir
         self.model = None  # keras model loaded from local dir or remote location
         self.id = _id  # player id assigned by the game

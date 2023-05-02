@@ -108,7 +108,7 @@ class Gomoku:
         return win
 
     # main loop
-    def play(self, p1, p2, output_dir, sleep=1):
+    def play(self, p1, p2, output_dir, sleep=1, save=False):
         players = {0: p1, 1: p2}
         pi = 0
         self.draw()
@@ -124,12 +124,14 @@ class Gomoku:
 
             if win:
                 self.result = 1 - 2 * pi
-                now = datetime.datetime.now()
-                rand = np.random.choice(100000)
-                filename = output_dir + "board_" + str(rand) + now.strftime("%m_%d_%Y_%H_%M_%S") + ".npy"
-                print("-----won-----", pi, "\n----state counter: ", self.state_counter,
-                      "\n----saving to file ", filename)
-                np.save(filename, self.states[:self.state_counter])
+                print("winner player: ", pi, "\nstate counter: ", self.state_counter)
+                if save:
+                    now = datetime.datetime.now()
+                    rand = np.random.choice(100000)
+                    filename = output_dir + "board_" + str(rand) + now.strftime("%m_%d_%Y_%H_%M_%S") + ".npy"
+                    print("-----won-----", pi, "\n----state counter: ", self.state_counter,
+                          "\n----saving to file ", filename)
+                    np.save(filename, self.states[:self.state_counter])
                 break
             if np.sum(self.board.pbs) == self.board_sz * self.board_sz:
                 break
@@ -151,44 +153,25 @@ class RandomPlayer:
 
 
 def play_both_gui():
-    max_games = 500
+    max_games = 10
     sleep = 0
     while max_games > 0:
         g = Gomoku(11, False)
-        p1 = StrategyPlayer(0, g.gui, g.board.pbs)  # GUIPlayer(0, g.gui)
+        # p1 = StrategyPlayer(0, g.gui, g.board.pbs)  # GUIPlayer(0, g.gui)
         # p2 = StrategyPlayer(1, g.gui, g.board.pbs)
-        # p1 = RandomPlayer(0)
-        p2 = MyPlayer("models/dipesh_model.h5", 1, g.gui)
+        p1 = RandomPlayer(0)
+        p2 = MyPlayer(1)
+        # p2 = MyPlayer(1, "models/cnn_05_01_2023_22_40_30.h5")  # 70% failure (10 games)
+        # p2 = MyPlayer(1, "models/cnn_05_02_2023_00_27_12.h5")  # max 10% failure (20 games)
+        # p2 = MyPlayer(1, "models/cnn_lstm_05_01_2023_22_50_44.h5")  # 30% failure
+        # p2 = MyPlayer(1, "models/cnn_05_02_2023_04_55_55.h5")  # 20% failure
+        # p1 = MyPlayer(0, "models/dipesh_model.h5")
         # p2 = ModelPlayer("models/cnn_05_01_2023_22_40_30.h5", 1, g.gui)
         g.play(p1, p2, PLAY_WITH_STRATEGY, sleep)
         # g.gui.draw_result(g.result)
         max_games -= 1
         # g.gui.wait_to_exit(force_quit=True)
 
-def play_cmd():
-    if len(sys.argv) > 1:
-        # A user plays game with a random player
-        g = Gomoku(11, True)
-
-        p1 = RandomPlayer(0)
-        p2 = GUIPlayer(1, g.gui)
-        print('start GUI game, close window to exit.')
-        g.play(p1, p2)
-
-        g.gui.draw_result(g.result)
-        g.gui.wait_to_exit()
-
-    else:
-        # Two random player play 100 rounds of non-GUI game
-        g = Gomoku()
-        p1 = RandomPlayer(0)
-        p2 = RandomPlayer(1)
-        for i in range(1000):
-            g.play(p1, p2)
-            print(i, g.result)
-            g.reset()
-
 
 if __name__ == "__main__":
     play_both_gui()
-    # play_cmd()
