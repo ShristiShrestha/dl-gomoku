@@ -5,7 +5,7 @@ import time
 import numpy as np
 
 from GlobalVars import PLAY_WITH_STRATEGY
-from ModelPlayer import ModelPlayer
+from Shrestha import MyPlayer
 from StrategyPlayer import StrategyPlayer
 from gamegui import GameGUI, GUIPlayer  # do not import gamegui if you don't have pygame or not on local machine.
 
@@ -158,7 +158,7 @@ def play_both_gui():
         p1 = StrategyPlayer(0, g.gui, g.board.pbs)  # GUIPlayer(0, g.gui)
         # p2 = StrategyPlayer(1, g.gui, g.board.pbs)
         # p1 = RandomPlayer(0)
-        p2 = ModelPlayer("models/dipesh_model.h5", 1, g.gui)
+        p2 = MyPlayer("models/dipesh_model.h5", 1, g.gui)
         # p2 = ModelPlayer("models/cnn_05_01_2023_22_40_30.h5", 1, g.gui)
         g.play(p1, p2, PLAY_WITH_STRATEGY, sleep)
         # g.gui.draw_result(g.result)

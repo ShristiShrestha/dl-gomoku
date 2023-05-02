@@ -2,3 +2,5 @@ numpy
 pygame
 tensorflow
 keras
+requests
+h5py
